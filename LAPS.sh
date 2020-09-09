@@ -48,12 +48,16 @@
 ####################################################################################################
 
 resetUser=""
-
-# CHECK TO SEE IF A VALUE WAS PASSED IN PARAMETER 6 AND, IF SO, ASSIGN TO "resetUser"
+basePassword=""
+# CHECK TO SEE IF A VALUE WAS PASSED IN PARAMETER 4 AND, IF SO, ASSIGN TO "resetUser"
 if [ "$4" != "" ] && [ "$resetUser" == "" ];then
 resetUser=$4
 fi
 
+# CHECK TO SEE IF A VALUE WAS PASSED IN PARAMETER 5 AND, IF SO, ASSIGN TO "initialPassword"
+if [ "$5" != "" ] && [ "$basePassword" == "" ];then
+basePassword=$5
+fi
 
 udid=$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | awk '/IOPlatformUUID/ { split($0, line, "\""); printf("%s\n", line[4]); }')
 
@@ -124,10 +128,17 @@ ScriptLogging "Parameters Verified."
 RunLAPS (){
 ScriptLogging "Running LAPS..."
 
+if [[ "$secureTokenStatus" = "DISABLED" ]]; then
 
     ScriptLogging "Updating password for $resetUser."
     echo "Updating password."
     $jamf_binary resetPassword -username $resetUser -password $newPass
+else
+    ScriptLogging "*** Secure Token Enabled! ***"
+    sysadminctl -resetPasswordFor "$resetUser" -newPassword "$newPass" -adminUser "$resetUser" -adminPassword "$basePassword"
+    
+    
+fi
 
 }
 
@@ -150,26 +161,42 @@ fi
 # Update the LAPS Extention Attribute
 UpdateJamf (){
 ScriptLogging "Recording new password for $resetUser into LAPS."
-
+# debug
+# ScriptLogging "*** new pass is $newPass ***"
 touch $LAPSFile
+
 #echo "$resetUser|$newPass" > $LAPSFile
 echo "$newPass" > $LAPSFile
 
+# EA must be in Jamf to record the value
 jamf recon
 
 }
 
 checkSecureTokenStatus () {
 
-secureTokenStatus=$(sysadminctl -secureTokenStatus $resetUser 2>&1 | awk '{ print $7 }')
+secureTokenStatus=$(sysadminctl -secureTokenStatus $resetUser 2>&1 | awk '{ print $7 }' | sed s'/ //g')
 
 ScriptLogging "secure token for $resetUser is $secureTokenStatus"
+
+}
+
+checkIfRunBefore () {
+
+if [ -f "$LAPSFile" ]; then
+    previousPassword=$(cat $LAPSFile)
+    basePassword=${previousPassword}
+    # Debug
+    ScriptLogging "base password is $basePassword"
+
+fi
 
 }
 #====================================================
 # The script itself
 
 checkSecureTokenStatus
+checkIfRunBefore
 RunLAPS
 CheckNewPassword
 UpdateJamf
