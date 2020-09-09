@@ -35,7 +35,11 @@
 #   - 05/06/2016 Updated by Phil Redfern, improved local logging and increased random passcode length.
 #   - 05/11/2016 Updated by Phil Redfern, removed ambiguous characters from the password generator.
 #
-#   - This script will randomize the password of the specified user account and post the password to the LAPS Extention Attribute in Casper.
+#   - This script will randomize the password of the specified user account and post the password to the LAPS Extention Attribute in Jamf.
+#  Version 1.5
+#   - 8 Sep 2020 Mark Lamont  Removed reliance on API user thus closing security hole. Now uses standard inventory function to update.
+#   - Password does remain on the device though but is obscured and only available to root user.
+#   - Not written to work with FileVault enabled admin users because of all the issues with secure token
 #
 ####################################################################################################
 #
@@ -43,28 +47,24 @@
 #
 ####################################################################################################
 
-# HARDCODED VALUES SET HERE
-apiUser=""
-apiPass=""
 resetUser=""
 
-# CHECK TO SEE IF A VALUE WAS PASSED IN PARAMETER 4 AND, IF SO, ASSIGN TO "apiUser"
-if [ "$4" != "" ] && [ "$apiUser" == "" ];then
-apiUser=$4
-fi
-
-# CHECK TO SEE IF A VALUE WAS PASSED IN PARAMETER 5 AND, IF SO, ASSIGN TO "apiPass"
-if [ "$5" != "" ] && [ "$apiPass" == "" ];then
-apiPass=$5
-fi
-
 # CHECK TO SEE IF A VALUE WAS PASSED IN PARAMETER 6 AND, IF SO, ASSIGN TO "resetUser"
-if [ "$6" != "" ] && [ "$resetUser" == "" ];then
-resetUser=$6
+if [ "$4" != "" ] && [ "$resetUser" == "" ];then
+resetUser=$4
 fi
 
-apiURL="https://jss.acme.com:8443"
-LogLocation="/Library/Logs/Casper_LAPS.log"
+
+udid=$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | awk '/IOPlatformUUID/ { split($0, line, "\""); printf("%s\n", line[4]); }')
+
+LogLocation="/Library/Logs/Jamf_LAPS.log"
+LAPSFileLocation="/usr/local/jamf/$udid/"
+if [ ! -d "$LAPSFileLocation" ]; then
+mkdir -p $LAPSFileLocation
+chmod 600 $LAPSFileLocation
+fi
+
+LAPSFile="$LAPSFileLocation.$udid"
 
 newPass=$(openssl rand -base64 10 | tr -d OoIi1lLS | head -c12;echo)
 ####################################################################
@@ -86,15 +86,12 @@ newPass=$(openssl rand -base64 10 | tr -d OoIi1lLS | head -c12;echo)
 #
 ####################################################################################################
 
-udid=$(/usr/sbin/system_profiler SPHardwareDataType | /usr/bin/awk '/Hardware UUID:/ { print $3 }')
-xmlString="<?xml version=\"1.0\" encoding=\"UTF-8\"?><computer><extension_attributes><extension_attribute><name>LAPS</name><value>$newPass</value></extension_attribute></extension_attributes></computer>"
-extAttName="\"LAPS\""
-oldPass=$(curl -s -f -u $apiUser:$apiPass -H "Accept: application/xml" $apiURL/JSSResource/computers/udid/$udid/subset/extension_attributes | xpath "//extension_attribute[name=$extAttName]" 2>&1 | awk -F'<value>|</value>' '{print $2}')
-
+# jamf binary path
+jamf_binary="/usr/local/jamf/bin/jamf"
 # Logging Function for reporting actions
 ScriptLogging(){
 
-DATE=`date +%Y-%m-%d\ %H:%M:%S`
+DATE=$(date +%Y-%m-%d\ %H:%M:%S)
 LOG="$LogLocation"
 
 echo "$DATE" " $1" >> $LOG
@@ -102,21 +99,6 @@ echo "$DATE" " $1" >> $LOG
 
 ScriptLogging "======== Starting LAPS Update ========"
 ScriptLogging "Checking parameters."
-
-# Verify parameters are present
-if [ "$apiUser" == "" ];then
-    ScriptLogging "Error:  The parameter 'API Username' is blank.  Please specify a user."
-    echo "Error:  The parameter 'API Username' is blank.  Please specify a user."
-    ScriptLogging "======== Aborting LAPS Update ========"
-    exit 1
-fi
-
-if [ "$apiPass" == "" ];then
-    ScriptLogging "Error:  The parameter 'API Password' is blank.  Please specify a password."
-    echo "Error:  The parameter 'API Password' is blank.  Please specify a password."
-    ScriptLogging "======== Aborting LAPS Update ========"
-    exit 1
-fi
 
 if [ "$resetUser" == "" ];then
     ScriptLogging "Error:  The parameter 'User to Reset' is blank.  Please specify a user to reset."
@@ -126,7 +108,7 @@ if [ "$resetUser" == "" ];then
 fi
 
 # Verify resetUser is a local user on the computer
-checkUser=`dseditgroup -o checkmember -m $resetUser localaccounts | awk '{ print $1 }'`
+checkUser=$(dseditgroup -o checkmember -m $resetUser localaccounts | awk '{ print $1 }')
 
 if [[ "$checkUser" = "yes" ]];then
     echo "$resetUser is a local user on the Computer"
@@ -138,59 +120,15 @@ fi
 
 ScriptLogging "Parameters Verified."
 
-# Identify the location of the jamf binary for the jamf_binary variable.
-CheckBinary (){
-# Identify location of jamf binary.
-jamf_binary=`/usr/bin/which jamf`
-
-if [[ "$jamf_binary" == "" ]] && [[ -e "/usr/sbin/jamf" ]] && [[ ! -e "/usr/local/bin/jamf" ]]; then
-jamf_binary="/usr/sbin/jamf"
-elif [[ "$jamf_binary" == "" ]] && [[ ! -e "/usr/sbin/jamf" ]] && [[ -e "/usr/local/bin/jamf" ]]; then
-jamf_binary="/usr/local/bin/jamf"
-elif [[ "$jamf_binary" == "" ]] && [[ -e "/usr/sbin/jamf" ]] && [[ -e "/usr/local/bin/jamf" ]]; then
-jamf_binary="/usr/local/bin/jamf"
-fi
-
-ScriptLogging "JAMF Binary is $jamf_binary"
-}
-
-# Verify the current User Password in Casper LAPS
-CheckOldPassword (){
-ScriptLogging "Verifying password stored in LAPS."
-
-if [ "$oldPass" == "" ];then
-    ScriptLogging "No Password is stored in LAPS."
-    echo "No Password is stored in LAPS."
-    oldPass=None
-else
-    ScriptLogging "A Password was found in LAPS."
-    echo "A Password was found in LAPS."
-fi
-
-passwdA=`dscl /Local/Default -authonly $resetUser $oldPass`
-
-if [ "$passwdA" == "" ];then
-    ScriptLogging "Password stored in LAPS is correct for $resetUser."
-    echo "Password stored in LAPS is correct for $resetUser."
-else
-    ScriptLogging "Error: Password stored in LAPS is not valid for $resetUser."
-    echo "Error: Password stored in LAPS is not valid for $resetUser."
-    oldPass=""
-fi
-}
-
 # Update the User Password
 RunLAPS (){
 ScriptLogging "Running LAPS..."
-if [ "$oldPass" == "" ];then
-    ScriptLogging "Current password not available, proceeding with forced update for $resetUser."
-    echo "Current password not available, proceeding with forced update."
-    $jamf_binary resetPassword -username $resetUser -password $newPass
-else
+
+
     ScriptLogging "Updating password for $resetUser."
-    echo "Updating password for $resetUser."
-    $jamf_binary resetPassword -updateLoginKeychain -username $resetUser -oldPassword $oldPass -password $newPass
-fi
+    echo "Updating password."
+    $jamf_binary resetPassword -username $resetUser -password $newPass
+
 }
 
 # Verify the new User Password
@@ -210,32 +148,31 @@ fi
 }
 
 # Update the LAPS Extention Attribute
-UpdateAPI (){
+UpdateJamf (){
 ScriptLogging "Recording new password for $resetUser into LAPS."
-/usr/bin/curl -s -u ${apiUser}:${apiPass} -X PUT -H "Content-Type: text/xml" -d "${xmlString}" "${apiURL}/JSSResource/computers/udid/$udid"
 
-sleep 1
+touch $LAPSFile
+#echo "$resetUser|$newPass" > $LAPSFile
+echo "$newPass" > $LAPSFile
 
-LAPSpass=$(curl -s -f -u $apiUser:$apiPass -H "Accept: application/xml" $apiURL/JSSResource/computers/udid/$udid/subset/extension_attributes | xpath "//extension_attribute[name=$extAttName]" 2>&1 | awk -F'<value>|</value>' '{print $2}')
+jamf recon
 
-ScriptLogging "Verifying LAPS password for $resetUser."
-passwdC=`dscl /Local/Default -authonly $resetUser $LAPSpass`
-if [ "$passwdC" == "" ];then
-    ScriptLogging "LAPS password for $resetUser is verified."
-    echo "LAPS password for $resetUser is verified."
-else
-    ScriptLogging "Error: LAPS password for $resetUser is not correct!"
-    echo "Error: LAPS password for $resetUser is not correct!"
-    ScriptLogging "======== Aborting LAPS Update ========"
-exit 1
-fi
 }
 
-CheckBinary
-CheckOldPassword
+checkSecureTokenStatus () {
+
+secureTokenStatus=$(sysadminctl -secureTokenStatus $resetUser 2>&1 | awk '{ print $7 }')
+
+ScriptLogging "secure token for $resetUser is $secureTokenStatus"
+
+}
+#====================================================
+# The script itself
+
+checkSecureTokenStatus
 RunLAPS
 CheckNewPassword
-UpdateAPI
+UpdateJamf
 
 ScriptLogging "======== LAPS Update Finished ========"
 echo "LAPS Update Finished."
