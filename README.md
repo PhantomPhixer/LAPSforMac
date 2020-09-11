@@ -17,21 +17,33 @@ This has been tested in the following listed scenarios, but should work in most 
 
 ![prestage](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/prestage-noaccount.png)
 
-*LAPSforMac 2* has several components that are used with Jamf Pro:
+In both of these the admin account and initial password are known for use later.
 
-1.  A Computer Extension Attribute to hold the current LAPS password.
-2.  A Smart Group used to identify Computers with/without the local admin account.
-3.  The LAPS script.
-4.  A Jamf policy that randomises the Local Admin account password on a specified interval, by running a script.
+## Components
+
+*LAPSforMac 2* has very few components:
+
+1. A Computer Extension Attribute to hold the current LAPS password.
+2. A Smart Group used to identify applicable computers.
+3. The LAPS script.
+4. Jamf policies that runs the script.
 5. A local log for LAPS on each Mac.
+6. A local file that stores the password on each Mac.
 
-## Admin Defined Variable
+*Discussion point!* The origianal script used jamf API calls. Recent events have shown having API users can present a security risk as they can not operate behind 2FA.
+The design decision for this LAPS is to remove the reliance on APIs and store the password locally, in an obscure way, and allow standard inventory processes to record the password. 
+It was initially hoped to delete the local password copy however as the Jamf inventory blanks an EA if no specific result is returned this defeats the whole LAPS purpose as the password would dissappear from Jamf if the file was deleted.
+
+***A lesser of two evils choice!*** 
+
+
+## Script Variables
    
-```{resetUser}```  
+```{resetUser $4}```  
 This is the shortname of the Local Admin account that will be created on macOS devices enrolled in Jamf.  
    
-```{basePassword}```  
-This will be the initial password set in the prestage creating the Local Admin account on the device.  This password is immediately randomised after the policy first runs.  
+```{basePassword $5}```  
+This will be the initial password set in the prestage creating the Local Admin account on the device.  This password is randomised after the policy first runs.  
 
 # Component Setup
 
@@ -57,54 +69,17 @@ Replace ```{AccountShortName}``` with the name of the local admin account you wi
 	2. Display Name: {AccountShortName} LAPS User Present
 		Criteria: Local User Accounts, has, {AccountShortName}
 
-
-
-## 4. LAPS Account Creation script
-    Display Name: LAPS Account Creation
-    Options:
-    	Priority: Before
-    	Parameter Labels:
-    		Parameter 4: API Username
-			Parameter 5: API Password
-			Parameter 6: LAPS Account Shortname
-			Parameter 7: LAPS Account Display Name
-			Parameter 8: LAPS Password Seed
-			Parameter 9: LAPS Account Event
-			Parameter 10: LAPS Account Event FVE
-			Parameter 11: LAPS Run Event
-### Script
-The current version of the LAPS Account Creation script is available [here](https://github.com/unl/LAPSforMac/blob/master/LAPS%20Account%20Creation.sh).
-
-*Notes: The LAPS Account Creation script performs the following actions:*  
-
-```
-1. Verifies that all variable parameters have been populated within Jamf.  
-2. Verifies the location of the JAMF binary.  
-3. Populates the Local Admin account password seed into the LAPS extension attribute within Jamf.  
-4. Checks if FileVault 2 in enabled on the Mac then calls Jamf to create the local admin account accordingly. 
-	• If FileVault 2 is not enabled, a regular admin account will be created on the Mac.
-	• If FileVault 2 is enabled, a FileVault 2 enabled admin account will be created on the Mac, the script will then verify that the new admin account is listed as FileVault enabled.  
-5. After the account has been created the LAPS script is called to randomize the initial password seed.
-```
-### Variables
-```apiURL``` Put the fully qualified domain name address of your Jamf server, including port number  
-*(Your port is usually 8443 or 443; change as appropriate for your installation)*
-
-```LogLocation``` Put the preferred location of the log file for this script. If you don't have a preference, using the default setting of ```/Library/Logs/Jamf_Laps.log``` should be fine.
-
-
-
 ## 5. LAPS script
 	Display Name: LAPS
 	Options:
 	Priority: After
 	Parameter Labels:
-		Parameter 4: API Username
-		Parameter 5: API Password
-		Parameter 6: LAPS Account Shortname
-		
+		Parameter 4: Admin User
+		Parameter 5: Admin Password
+
+
 ### Script
-The current version of the LAPS script is available [here](https://github.com/unl/LAPSforMac/blob/master/LAPS.sh).
+The current version of the LAPS script is available [here](https://github.com/PhantomPhixer/LAPSforMac/blob/master/LAPS.sh).
 
 *Notes: The LAPS script performs the following actions:*  
 
