@@ -187,7 +187,7 @@ if [ -f "$LAPSFile" ]; then
     previousPassword=$(cat $LAPSFile)
     basePassword=${previousPassword}
     # Debug
-    ScriptLogging "base password is $basePassword"
+    #ScriptLogging "base password is $basePassword"
 
 fi
 
