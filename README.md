@@ -4,7 +4,15 @@ Local Administrator Password Solution for Mac
 ## Purpose  
 
 This is a fork of the original [LAPS for Mac](https://github.com/NU-ITS/LAPSforMac) but modified to take in changes to macOS and ways it is now provisioned. 
-It provides a way to securely manage the passwords of local admin accounts on macsOS .  The design uses a local Admin account created during a device enrollment build,or manually created if required, on every Mac enrolled into Jamf Pro and stores the account password in the devices inventory record as an Extension Attribute. On a specified interval Jamf will then randomise the local Admin account password and upload into Jamf again.  
+It provides a way to securely manage the passwords of local admin accounts on macsOS .  The design uses a local Admin account created during a device enrollment build,or manually created if required, on every Mac enrolled into Jamf Pro and stores the account password in the devices inventory record as an Extension Attribute. On a specified interval Jamf will then randomise the local Admin account password and upload into Jamf again.
+
+## Usage Scenarios
+This has been tested in the following listed scenarios, but should work in most other ones where there is a known admin user with a known password. *This includes ones where the desired admin user does have a secure token.* 
+
+1. Prestage set to create additional admin and a set user
+![prestage](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/prestage-create-account.png)
+2. Prestage set create additional admin but skip user creation. Jamf connect will be used to create user accounts.
+![prestage](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/prestage-noaccount.png)
 
 *LAPSforMac 2* has several components that are used with Jamf Pro:
 
