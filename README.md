@@ -10,8 +10,11 @@ It provides a way to securely manage the passwords of local admin accounts on ma
 This has been tested in the following listed scenarios, but should work in most other ones where there is a known admin user with a known password. *This includes ones where the desired admin user does have a secure token.* 
 
 1. Prestage set to create additional admin and a set user
+
 ![prestage](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/prestage-create-account.png)
+
 2. Prestage set create additional admin but skip user creation. Jamf connect will be used to create user accounts.
+
 ![prestage](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/prestage-noaccount.png)
 
 *LAPSforMac 2* has several components that are used with Jamf Pro:
