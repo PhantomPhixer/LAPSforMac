@@ -130,6 +130,7 @@ Can be called in build scripts to ensure device is compliant during the build pr
 			Admin base password
 
 ![policy-general](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-manual.png)
+
 ![policy-script](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-script.png)
 
 ## 7. Jamf LAPS Policy - Scheduled
