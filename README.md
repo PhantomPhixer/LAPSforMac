@@ -129,7 +129,7 @@ Can be called in build scripts to ensure device is compliant during the build pr
 			Admin username
 			Admin base password
 
-![policy-general](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-manual.png)
+![policy-triggered](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-manual.png)
 
 ![policy-script](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-script.png)
 
@@ -146,6 +146,11 @@ This policy randomises the local admin accounts password on a specified interval
 			Admin username
 			Admin base password
 
+![policy-scheduled](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-scheduled.png)
+
+![policy-scoped](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-scope.png)
+
+![policy-script](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-script.png)
 
 ## 8. LAPS Log
 A log is written to each Mac run LAPS for troubleshooting. The default location for this log is ```/Library/Logs/Jamf_LAPS.log``` which can be modified if desired.
