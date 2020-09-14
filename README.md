@@ -60,16 +60,13 @@ Copy the contents of LAPS-EA.txt into the script window.
 
 ![as shown](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/EA-settings.png)
 
-## 3. Jamf Smart Groups
-Replace ```{AccountShortName}``` with the name of the local admin account you will use for LAPS.
+## 2. Jamf Smart Group
+Replace ```{Admin user name}``` with the name of the local admin account required.
 
-	1. Display Name: {AccountShortName} LAPS User Missing
-		Criteria: Local User Accounts, does not have, {AccountShortName}
+	Display Name: {Admin user name} LAPS User Present
+	Criteria: Local User Accounts, has, {Admin user name}
 
-	2. Display Name: {AccountShortName} LAPS User Present
-		Criteria: Local User Accounts, has, {AccountShortName}
-
-## 5. LAPS script
+## 3. LAPS script
 	Display Name: LAPS
 	Options:
 	Priority: After
