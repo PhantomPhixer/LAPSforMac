@@ -76,7 +76,7 @@ Replace ```{Admin user name}``` with the name of the local admin account require
 		Parameter 4: Admin user name
 		Parameter 5: Admin base password
 
-
+![as shown](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/script.png)
 ### Script
 The current version of the LAPS script is available [here](https://github.com/PhantomPhixer/LAPSforMac/blob/master/LAPS.sh).
 
