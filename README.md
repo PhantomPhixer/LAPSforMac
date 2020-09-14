@@ -74,8 +74,8 @@ Replace ```{AccountShortName}``` with the name of the local admin account you wi
 	Options:
 	Priority: After
 	Parameter Labels:
-		Parameter 4: Admin User
-		Parameter 5: Admin Password
+		Parameter 4: Admin user name
+		Parameter 5: Admin base password
 
 
 ### Script
@@ -85,18 +85,15 @@ The current version of the LAPS script is available [here](https://github.com/Ph
 
 ```
 1. Verifies that all variable parameters have been populated within Jamf.  
-2. Verifies the location of the JAMF binary.  
-3. Verifies that a password is stored in the LAPS extension attribuite within Jamf for this Mac.
-	• If no password is found or it is invalid, the script will proceed with a brute force reset of the password.
-	• If a password is valid, the script will reset the password and update the local Keychain and FileVault 2.
-4. After reseting the password the script will then update the LAPS extension attribute for the Mac in Jamf and verify that the new entry in Jamf is valid on the local Mac.
+2. Checks if the password has been set by the script on this machine.
+	• If it has this is used as the base password overriding the default base password.
+	• The base password is only required if the admin account has a secure token. Ff it doesn't, and in the scenarios this is tested against it shouldn't have, then the base password is never used.
+3. After reseting, and verifying, the password the script will then update the extension attribute by running a *jamf recon*.
 
 ```
 
-
 ### Variables
-```apiURL``` Put the fully qualified domain name address of your Jamf server, including port number  
-*(Your port is usually 8443 or 443; change as appropriate for your installation)*
+Two variables are set in the script itself.
 
 ```LogLocation``` Put the preferred location of the log file for this script. If you don't have a preference, using the default setting of ```/Library/Logs/Jamf_Laps.log``` should be fine.  
 
@@ -117,82 +114,35 @@ The current version of the LAPS script is available [here](https://github.com/Ph
 
 		
 				
-## 6. Jamf LAPS Account Creation Policy
-	Display Name: LAPS for {AccountShortName} – Create Local Account – Manual Trigger
-	Scope: All Computers
-	Trigger:
-		Custom: createLAPSaccount-{AccountShortName}
-	Frequency: Ongoing
-	Local Accounts:
-		Action: Create Account
-		Username: {AccountShortName}
-		Full Name: {AccountDisplayName}
-		Password: {AccountInitialPassword}
-		Verify Password: {AccountInitialPassword}
-		Home Directory Location: /Users/{AccountShortName}/
-		Password Hint: (Not Used)
-		Allow user to administer computer: Yes
-		Enable user for FileVault 2: No	
-## 7. Jamf LAPS Account Creation Policy for FileVault 2 Enabled Macs
-This is a separate policy to eliminate false positve errors that accumulate in the logs if the Mac is using FileVault 2.
 
-	Display Name: LAPS for {AccountShortName} – Create Local Account FVE – Manual Trigger
-	Scope: All Computers
-	Trigger:
-		Custom: createLAPSaccountFVE-{AccountShortName}
-	Frequency: Ongoing
-	Local Accounts:
-		Action: Create Account
-		Username: {AccountShortName}
-		Full Name: {AccountDisplayName}
-		Password: {AccountInitialPassword}
-		Verify Password: {AccountInitialPassword}
-		Home Directory Location: /Users/{AccountShortName}/
-		Password Hint: (Not Used)
-		Allow user to administer computer: Yes
-		Enable user for FileVault 2: Yes
-## 8. Jamf LAPS Policy – Manual Trigger
-This policy randomizes the local admin accounts password after initial account creation.
+## 6. Jamf LAPS Policy – Manual Trigger (*Optional*)
+This policy randomises the local admin accounts password using a trigger.
+Can be called in build scripts to ensure device is compliant during the build process or can be called from from any other policy as required.
 
-	Display Name: LAPS for {AccountShortName} - Manual Trigger
+	Display Name: LAPS for {AdminShortName} - Manual Trigger
 	Scope: All Computers
 	Trigger: 
 		Custom: runLAPS
-	Frequency: Once every day (Change this value to meet your institution's needs)
+	Frequency: Ongoing (as it's manual trigger this is ok)
 	Scripts: LAPS
 		Priority: After
 		Parameter Values
-			API Username: {APIusername}
-			API Password: {APIpassword}
-			LAPS Account Shortname: {AccountShortName}
-## 9. Jamf LAPS Policy
-This policy randomizes the local admin accounts password on a specified interval.
+			Admin username
+			Admin base password
 
-	Display Name: LAPS for {AccountShortName}
-	Scope: LAPS {AccountShortName} Account Present
+## 7. Jamf LAPS Policy - Scheduled
+This policy randomises the local admin accounts password on a specified interval.
+
+	Display Name: LAPS for {AdminShortName}
+	Scope: LAPS {AdminShortName} Account Present
 	Trigger: Recurring Check-in
-	Frequency: Once every day (Change this value to meet your institution's needs)
+	Frequency: Once every day/week/month (Change this value to meet your institution's needs)
 	Scripts: LAPS
 		Priority: After
 		Parameter Values
-			API Username: {APIusername}
-			API Password: {APIpassword}
-			LAPS Account Shortname: {AccountShortName}
-## 10. Jamf policy to call the LAPS Account Creation script.
-	Name: LAPS – Create Account
-	Scope: {AccountShortName} LAPS Account Missing
-	Trigger: Startup, Check-in, Enrollment (You may also decide to add a manual trigger for advanced workflows)
-	Frequency: Ongoing
-	Scripts: LAPS Account Creation
-		Priority: Before
-		Parameter Values
-			API Username: {APIusername}
-			API Password: {APIpassword}
-			LAPS Account Shortname: {AccountShortName}
-			LAPS Account Display Name: {AccountDisplayName}
-			LAPS Password Seed: {AccountInitialPassword}
-			LAPS Account Event: createLAPSaccount-{AccountShortName}
-			LAPS Account Event FVE: createLAPSaccountFVE-{AccountShortName}
-			LAPS Run Event: runLAPS
-## 11. LAPS Log
+			Admin username
+			Admin base password
+
+
+## 8. LAPS Log
 A log is written to each Mac run LAPS for troubleshooting. The default location for this log is ```/Library/Logs/Jamf_LAPS.log``` which can be modified if desired.
