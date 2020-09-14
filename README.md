@@ -118,7 +118,7 @@ Two variables are set in the script itself.
 This policy randomises the local admin accounts password using a trigger.
 Can be called in build scripts to ensure device is compliant during the build process or can be called from from any other policy as required.
 
-	Display Name: LAPS for {AdminShortName} - Manual Trigger
+	Display Name: LAPS for {Admin user name} - Manual Trigger
 	Scope: All Computers
 	Trigger: 
 		Custom: runLAPS
@@ -129,11 +129,14 @@ Can be called in build scripts to ensure device is compliant during the build pr
 			Admin username
 			Admin base password
 
+![policy-general](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-manual.png)
+![policy-script](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/policy-script.png)
+
 ## 7. Jamf LAPS Policy - Scheduled
 This policy randomises the local admin accounts password on a specified interval.
 
-	Display Name: LAPS for {AdminShortName}
-	Scope: LAPS {AdminShortName} Account Present
+	Display Name: LAPS for {Admin user name}
+	Scope: {Admin user name} LAPS User Present
 	Trigger: Recurring Check-in
 	Frequency: Once every day/week/month (Change this value to meet your institution's needs)
 	Scripts: LAPS
