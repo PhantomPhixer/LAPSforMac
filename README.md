@@ -66,7 +66,7 @@ Replace ```{Admin user name}``` with the name of the local admin account require
 	Display Name: {Admin user name} LAPS User Present
 	Criteria: Local User Accounts, has, {Admin user name}
 
-![as shown](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/sg.png)
+![as shown](https://github.com/PhantomPhixer/LAPSforMac/blob/master/images/sg1.png)
 
 ## 3. LAPS script
 	Display Name: LAPS
